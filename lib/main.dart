@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:minesweeper/generated/assets.dart';
 
 // main 函数
@@ -217,6 +218,7 @@ class _MineSweeperGameState extends State<MineSweeperGame> {
         if (isFlagged) return;
         if (cell.isMine) {
           // 如果点击的是地雷，显示所有地雷
+          HapticFeedback.vibrate(); // 轻微震动
           cell.isExploded = true;
           _revealAllMines();
           lose = true;
