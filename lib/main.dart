@@ -121,15 +121,17 @@ class _MineSweeperGameState extends State<MineSweeperGame> {
             onTap: () {
               restartGame();
             },
-            child: Image.asset(
-                lose
-                    ? Assets.assetsDead
-                    : win
-                        ? Assets.assetsWin
-                        : Assets.assetsSmile,
-                width: 40,
-                height: 40,
-                fit: BoxFit.fill)),
+            child: Center(
+              child: Image.asset(
+                  lose
+                      ? Assets.assetsDead
+                      : win
+                          ? Assets.assetsWin
+                          : Assets.assetsSmile,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.fill),
+            )),
       ),
       body: GridView.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
