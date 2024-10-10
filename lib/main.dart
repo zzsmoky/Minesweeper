@@ -140,10 +140,7 @@ class MineSweeperView extends StatelessWidget {
                 MineCell cell = minefield.grid[row][col];
                 return GestureDetector(
                     onTap: () => context.read<MinefieldBloc>().add(RevealCell(row, col)),
-                    onDoubleTap: () {
-                      print("double tap");
-                      context.read<MinefieldBloc>().add(ToggleFlag(row, col));
-                    },
+                    onDoubleTap: () => context.read<MinefieldBloc>().add(ToggleFlag(row, col)),
                     child: Stack(
                       children: [
                         Container(color: const Color.fromRGBO(192, 192, 192, 1)),
@@ -206,8 +203,7 @@ class RightAngledTrapezoidPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     // cell.isRevealed ? Colors.grey : Colors.blue;
 
-    Paint paint = Paint()
-      ..style = PaintingStyle.fill;
+    Paint paint = Paint()..style = PaintingStyle.fill;
 
     if (!isRevealed) {
       paint.color = const Color.fromRGBO(245, 245, 245, 1);
