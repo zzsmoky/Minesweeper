@@ -2,7 +2,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:minesweeper/generated/assets.dart';
+import 'package:minesweeper/generated/event.dart';
+
+import 'generated/bloc.dart';
+import 'generated/state.dart';
 
 // main 函数
 void main() {
@@ -74,7 +79,7 @@ class Minefield {
       for (int dc = -1; dc <= 1; dc++) {
         int newRow = row + dr;
         int newCol = col + dc;
-        if (_isValid(newRow, newCol) && grid[newRow][newCol].isMine) {
+        if (isValid(newRow, newCol) && grid[newRow][newCol].isMine) {
           count++;
         }
       }
@@ -82,118 +87,99 @@ class Minefield {
     return count;
   }
 
-  bool _isValid(int row, int col) {
+  bool isValid(int row, int col) {
     return row >= 0 && row < rows && col >= 0 && col < cols;
   }
 }
 
 // 你的 MineSweeperGame 类
-class MineSweeperGame extends StatefulWidget {
+class MineSweeperGame extends StatelessWidget {
   const MineSweeperGame({super.key});
 
   @override
-  _MineSweeperGameState createState() => _MineSweeperGameState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => MinefieldBloc(),
+      child: const MineSweeperView(),
+    );
+  }
 }
 
-class _MineSweeperGameState extends State<MineSweeperGame> {
-  late Minefield minefield;
-  bool lose = false;
-  bool win = false;
-
-  @override
-  void initState() {
-    super.initState();
-    minefield = Minefield(9, 9, 10); // 设置为9x9网格，10个地雷
-  }
-
-  restartGame() {
-    setState(() {
-      lose = false;
-      win = false;
-      minefield = Minefield(9, 9, 10);
-    });
-  }
+class MineSweeperView extends StatelessWidget {
+  const MineSweeperView({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: GestureDetector(
-            onTap: () {
-              restartGame();
-            },
-            child: Center(
-              child: Image.asset(
-                  lose
-                      ? Assets.assetsDead
-                      : win
+        appBar: AppBar(
+            title: BlocBuilder<MinefieldBloc, MinefieldState>(
+                builder: (context, state) => GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () {
+                      context.read<MinefieldBloc>().add(InitializeGame());
+                    },
+                    child: Center(
+                        child: Image.asset(
+                      state.win
                           ? Assets.assetsWin
-                          : Assets.assetsSmile,
-                  width: 40,
-                  height: 40,
-                  fit: BoxFit.fill),
-            )),
-      ),
-      body: GridView.builder(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: minefield.cols,
-        ),
-        itemCount: minefield.rows * minefield.cols,
-        itemBuilder: (context, index) {
-          int row = index ~/ minefield.cols;
-          int col = index % minefield.cols;
-          MineCell cell = minefield.grid[row][col];
-          return GestureDetector(
-            onTap: () => _onCellTap(row, col),
-            onDoubleTap: () => _onDoubleTap(row, col),
-            child: Container(
-                color: cell.isRevealed ? Colors.grey : Colors.blue,
-                child: Stack(
-                  children: [
-                    Container(
-                      color: cell.isExploded ? const Color.fromRGBO(255, 0, 0, 1) : Colors.transparent,
-                    ),
-                    cell.isMine
-                        ? Positioned.fill(child: Image.asset(Assets.assetsMineCeil, fit: BoxFit.fill))
-                        : cell.neighborMines == 0
-                            ? Container()
-                            : cell.neighborMines == 1
-                                ? Positioned.fill(child: Image.asset(Assets.assetsOpen1, fit: BoxFit.fill))
-                                : cell.neighborMines == 2
-                                    ? Positioned.fill(child: Image.asset(Assets.assetsOpen2, fit: BoxFit.fill))
-                                    : cell.neighborMines == 3
-                                        ? Positioned.fill(child: Image.asset(Assets.assetsOpen3, fit: BoxFit.fill))
-                                        : cell.neighborMines == 4
-                                            ? Positioned.fill(child: Image.asset(Assets.assetsOpen4, fit: BoxFit.fill))
-                                            : cell.neighborMines == 5
-                                                ? Positioned.fill(
-                                                    child: Image.asset(Assets.assetsOpen5, fit: BoxFit.fill))
-                                                : cell.neighborMines == 6
-                                                    ? Positioned.fill(
-                                                        child: Image.asset(Assets.assetsOpen6, fit: BoxFit.fill))
-                                                    : cell.neighborMines == 7
-                                                        ? Positioned.fill(
-                                                            child: Image.asset(Assets.assetsOpen7, fit: BoxFit.fill))
-                                                        : cell.neighborMines == 8
-                                                            ? Positioned.fill(
-                                                                child:
-                                                                    Image.asset(Assets.assetsOpen8, fit: BoxFit.fill))
-                                                            : Container(),
-                    backGround(cell.isRevealed, cell.isExploded),
-                    Positioned.fill(
-                        child: cell.isRevealed
-                            ? Container()
-                            : cell.isFlagged
-                                ? Image.asset(Assets.assetsFlag, fit: BoxFit.fill)
-                                : cell.isQuestion
-                                    ? Image.asset(Assets.assetsQuestion, fit: BoxFit.fill)
-                                    : Container()),
-                  ],
-                )),
-          );
-        },
-      ),
-    );
+                          : state.lose
+                              ? Assets.assetsDead
+                              : Assets.assetsSmile,
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.fill,
+                    ))))),
+        body: BlocBuilder<MinefieldBloc, MinefieldState>(builder: (context, state) {
+          final minefield = state.minefield;
+          return GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: minefield.cols),
+              itemCount: minefield.rows * minefield.cols,
+              itemBuilder: (context, index) {
+                int row = index ~/ minefield.cols;
+                int col = index % minefield.cols;
+                MineCell cell = minefield.grid[row][col];
+                return GestureDetector(
+                    onTap: () => context.read<MinefieldBloc>().add(RevealCell(row, col)),
+                    onDoubleTap: () {
+                      print("double tap");
+                      context.read<MinefieldBloc>().add(ToggleFlag(row, col));
+                    },
+                    child: Stack(
+                      children: [
+                        Container(color: const Color.fromRGBO(192, 192, 192, 1)),
+                        Positioned.fill(child: buildCellContent(cell)),
+                        Positioned.fill(child: backGround(cell.isRevealed, cell.isExploded)),
+                      ],
+                    ));
+              });
+        }));
+  }
+
+  // 根据单元格状态选择显示的组件
+  Widget buildCellContent(MineCell cell) {
+    if (cell.isRevealed) {
+      if (cell.isMine) {
+        return Container(
+            color: const Color.fromRGBO(255, 0, 0, 1), child: Image.asset(Assets.assetsMineCeil, fit: BoxFit.fill));
+      } else if (cell.neighborMines > 0) {
+        // 根据邻近地雷数显示对应的图片
+        return Image.asset(
+          'assets/open${cell.neighborMines}.png',
+          fit: BoxFit.fill,
+        );
+      } else {
+        return Container(); // 空白
+      }
+    } else {
+      print("isFlagged: ${cell.isFlagged}");
+      if (cell.isFlagged) {
+        return Image.asset(Assets.assetsFlag, fit: BoxFit.fill);
+      } else if (cell.isQuestion) {
+        return Image.asset(Assets.assetsQuestion, fit: BoxFit.fill);
+      } else {
+        return Container(); // 未揭开的方块
+      }
+    }
   }
 
   Widget backGround(bool isMine, bool isExploded) {
@@ -208,91 +194,6 @@ class _MineSweeperGameState extends State<MineSweeperGame> {
       ]),
     );
   }
-
-  void _onCellTap(int row, int col) {
-    if (win) return;
-    if (!lose) {
-      MineCell cell = minefield.grid[row][col];
-      var isFlagged = cell.isFlagged;
-      setState(() {
-        if (isFlagged) return;
-        if (cell.isMine) {
-          // 如果点击的是地雷，显示所有地雷
-          HapticFeedback.vibrate(); // 轻微震动
-          cell.isExploded = true;
-          _revealAllMines();
-          lose = true;
-        } else {
-          // 如果点击的是空格，显示数字
-          _revealCell(row, col);
-        }
-      });
-    }
-  }
-
-  void _onDoubleTap(int row, int col) {
-    if (win) return;
-    if (!lose) {
-      var isFlagged = minefield.grid[row][col].isFlagged;
-      var isQuestion = minefield.grid[row][col].isQuestion;
-      setState(() {
-        if (isFlagged) {
-          minefield.grid[row][col].isFlagged = false;
-          minefield.grid[row][col].isQuestion = true;
-        } else {
-          if (isQuestion) {
-            minefield.grid[row][col].isFlagged = false;
-            minefield.grid[row][col].isQuestion = false;
-          } else {
-            minefield.grid[row][col].isFlagged = true;
-            //check win
-            var mines = 0;
-            for (int r = 0; r < minefield.rows; r++) {
-              for (int c = 0; c < minefield.cols; c++) {
-                var mine = minefield.grid[r][c];
-                if (mine.isFlagged && mine.isMine) {
-                  mines++;
-                }
-              }
-            }
-            if (mines == minefield.mineCount) {
-              win = true;
-            }
-          }
-        }
-      });
-    }
-  }
-
-  void _revealCell(int row, int col) {
-    MineCell cell = minefield.grid[row][col];
-    if (cell.isRevealed) return;
-
-    cell.isRevealed = true;
-
-    if (cell.neighborMines == 0) {
-      // 如果邻居地雷数为0，递归揭开周围的空格
-      for (int dr = -1; dr <= 1; dr++) {
-        for (int dc = -1; dc <= 1; dc++) {
-          int newRow = row + dr;
-          int newCol = col + dc;
-          if (minefield._isValid(newRow, newCol)) {
-            _revealCell(newRow, newCol);
-          }
-        }
-      }
-    }
-  }
-
-  void _revealAllMines() {
-    for (int r = 0; r < minefield.rows; r++) {
-      for (int c = 0; c < minefield.cols; c++) {
-        if (minefield.grid[r][c].isMine) {
-          minefield.grid[r][c].isRevealed = true;
-        }
-      }
-    }
-  }
 }
 
 class RightAngledTrapezoidPainter extends CustomPainter {
@@ -306,11 +207,9 @@ class RightAngledTrapezoidPainter extends CustomPainter {
     // cell.isRevealed ? Colors.grey : Colors.blue;
 
     Paint paint = Paint()
-      ..color = const Color.fromRGBO(192, 192, 192, 1)
       ..style = PaintingStyle.fill;
 
     if (!isRevealed) {
-      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
       paint.color = const Color.fromRGBO(245, 245, 245, 1);
       drawHideMask(canvas, size, paint);
     } else {
